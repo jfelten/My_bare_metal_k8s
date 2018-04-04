@@ -1,12 +1,12 @@
 # My Bare Metal Kubernetes Lab Set Up
 
-This is a write up on my personal lab. It is running on a Dell 6105c chassis with 3 blades. Each blade uses kvm to run virtual machines that host the kubernetes and storage nodes. It supports 3 or more clusters depending on configuration.  The target cluster size is 8 physical cores 16 GB total memory, and 400 GB node storage.  Each node lives on 1 of 4 nodes that uses  2 cores, 4 GB, and 100 GB of disk.  All kubernetes nodes reside on a kvm virtual machines running CentOS 7 and are managed through a set of ansible scripts.  Dynamic storage is handled through glusterfs that runs independently of kubernetes.  All of the required kubernetes bits to bootstrap the cluster are provided in custom helm charts that is applied after the cluster is created.  I provide detailed steps, scripts, kuberentes files, and the helm charts used for my set up.
+This is a write up of my personal lab. It runs on a Dell 6105c with 3 blades. Each blade uses kvm to run virtual machines that host the kubernetes and storage nodes. It supports 3 or more clusters depending on configuration. The target cluster size is 8 physical cores 16 GB total memory, and 400 GB node storage.  Each node lives on a virtual machine that uses  2 cores, 4 GB, and 100 GB of disk. All kubernetes nodes reside on a kvm virtual machines running CentOS 7 and are managed through a set of ansible scripts. Dynamic storage is handled through glusterfs that runs independently of kubernetes. All of the required kubernetes bits to bootstrap the cluster are provided in custom helm charts that is applied after the cluster is created. I provide detailed steps, scripts, kuberentes files, and the helm charts used for my set up.
 
-I use CentOS 7, because I am more experienced with RHEL variants. In hindsight a Debian variant may have been a better choice due to better support for both kubernetes and KVM. CentOS does not support 9pvirtio although it can be used with a custom kernel, which would have been nice for mounting host volumes. Kubernetes doesn't work out of the box on Centos without a few tweaks that are in the ansible scripts.  That being said centos is very stable once set up.
+I use CentOS 7 because I am more experienced with RHEL variants. In hindsight a Debian variant may have been a better choice due to better support for both kubernetes and KVM. CentOS does not support 9p virtio although it can be used with a custom kernel, which would have been nice for mounting host volumes. Kubernetes doesn't work out of the box on Centos without a few tweaks that are in the ansible scripts.  That being said, CentOS is stable once set up.
 
 
 ## Server Chassis
-The hardware is a Dell 6105c 2U chassis purchased a few years ago.  The hardware dates from 2011 or so and is set up with 3 blades each containing 48GB of DDR2 RAM and 2 6 core AMD opteratron processors for a total of 144G and 36 cores. Each blade runs CentOS 7 as the base OS.  All told I have about $500 invested.  The hardware is even older and cheaper now than when I purchased it.
+The hardware is a Dell 6105c 2U purchased a few years ago.  The hardware dates from 2011 or so and is set up with 3 blades each containing 48GB of DDR2 RAM and 2 6 core AMD opteratron processors for a total of 144G and 36 cores. Each blade runs CentOS 7 as the base OS.  All told I have about $500 invested.  The hardware is even older and cheaper now than when I purchased it.
 
 ## Storage
 Each blade accesses 4 physical drives of varying amounts of storage for a total of 12 physical SATA drives. On 2 of the blades I set up RAID 1 storage consisting of 2 drives. 1 blade has a RAID 0 storage. The disk arrays are used to back a glusterfs storage array that is then used by all kubernetes cluster
@@ -58,13 +58,13 @@ Install CentOS 7 minimal and then add packages as needed. I prefer to keep the b
 Each blade has 2 physical NICs and each NIC gets enslaved to a different bridge.  Interfeace 1, en0 is enslaved to bridge br0, which is given a static ip onn network 10.10.10.0/24, the lab netowrk. Interface 2, en1, is enslaved to bridged br1 which is a spearate subnet shared by kubernetes node VMs.
 
 First create the bridge br1, which will be the general lab network. There are tools to do this, but I find it easier to just add the file: /etc/sysconfig/network-scripts/ifcfg-br1
+
 ```
 cat /etc/sysconfig/network-scripts/ifcfg-br1
 DEVICE=br1
 TYPE=Bridge
 BOOTPROTO=none
 ONBOOT=yes
-#IPADDR=96.43.136.174
 IPADDR=10.10.10.13
 DNS1=8.8.8.8
 NETMASK=255.255.255.0
@@ -72,6 +72,7 @@ GATEWAY=10.10.10.1
 ```
 
 The physical NICS are designated as p4p1 and p4p2.  Each one will be enslaved to a bridge.  In this case en1 is enslaved to bridge br1 by changing the interface file:
+
 ```
 cat /etc/sysconfig/network-scripts/ifcfg-p4p2
 DEVICE=p4p2
@@ -81,6 +82,7 @@ BRIDGE=br1
 ```
 
 Next create the bridge br0 and enslave it to the interface p4p1.  Since we are on blade 3 we will have the bridge address will be 10.10.3.1 and act as a gateway for any VMs created:
+
 ```
 cat /etc/sysconfig/network-scripts/ifcfg-br0
 DEVICE=br0
@@ -103,7 +105,8 @@ Repeat on the other 2 blade adjust the ips and subnets as needed.
 ### create a kvm node template
 
 My approach to VMs is to create once then clone.  My naming schema for nodes is cluster<CLUSTER_NUM>n<NODE_NUM>/ Create a kvm VM called cluster1n1( cluster 1 node 1) attached to bridge br1 and install CentOS 7 minimal via:
-```
+
+```bash
 # virt-install \
 --virt-type=kvm \
 --name cluster1n1 \
@@ -117,12 +120,14 @@ My approach to VMs is to create once then clone.  My naming schema for nodes is 
 ```
 
 Once a vm is created get the xml definition:
-```
+
+```bash
 # virsh dumpxml cluster1n1 > cluster1n1.xml
 ```
 
 Now copy the cluster1n1.xml file 3 times to create the cluster1n2-cluster1n4 xml files.  Copy the disk files as well and rename the references in the resulting xml files.  Also be sure to edit the files to give each VM and to give each clone a unique network MAC address.  Here is a python script that generates a random MAC address:
-```
+
+```bash
 cat generateMac.sh
 #!/usr/bin/env python
  
@@ -289,6 +294,7 @@ Here are the steps used to set up gluster:
 First create the physical RAID disks with mdadm.  The process is well detailed on the net, and the end result is usally new a storage device /dev/md0 that represents the RAID array.  I use this to sotre all of my VM disks and other large files.
 
 Now create 2 virtual 500GB disk files:
+
 ```
 dd if=/dev/zero of=kubernetes1.dsk bs=1M count=500000
 dd if=/dev/zero of=kubernetes2.dsk bs=1M count=500000
@@ -490,7 +496,8 @@ kubeadm_network_addon_url=https://cloud.weave.works/k8s/net?k8s-version=
 cluster_name="cluster 1"
 
 ```
-The first node is always considered the master by the ansible scripts
+The first node is always considered the master by the ansible scripts:
+
 | variable                | Purpose                                                      |
 |-------------------------|:-----------------------------------------------------------:|
 |external_ip              | an externally available address - in my case ISP assigned IP|
@@ -505,12 +512,14 @@ To install kubernetes:
 ansible-playbook ansible/install_k8s.yaml -i ansible/cluster1
 ```
 
-To create the cluster
+To create the cluster:
+
 ```
 ansible-playbook ansible/create_cluster.yaml -i ansible/cluster1
 ```
 
-To upgrade an existing clsuter to the latest version of kubernetes 
+To upgrade an existing clsuter to the latest version of kubernetes:
+ 
 ```
 ansible-playbook ansible/upgrade.yaml -i ansible/cluster1
 ```
