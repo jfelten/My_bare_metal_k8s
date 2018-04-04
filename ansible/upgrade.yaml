@@ -1,0 +1,175 @@
+
+- hosts: nodes[0] 
+  vars:
+    http_port: 80
+    max_clients: 200
+  tasks:
+  - name: Notify that upgrade has started
+    slack:
+      token: 'T2BPP84RZ/B7JJ3QN8L/GxGtHn2gG0qkWlPl66HZjtn0'
+      msg: 'kubernetes uppgrade in progress - upgrading control plane on {{ cluster_name }}'
+      channel: #alerts
+      username: 'builderbot'
+      icon_emoji: ':bell:'
+      link_names: 0
+      parse: 'none'
+    delegate_to: localhost
+
+  - name: Get Latest kubernetes version tag
+    become: true
+    command: curl -sSL https://dl.k8s.io/release/stable.txt
+    register: kubernetes_latest_version
+    when: kube_version is not defined
+
+  - set_fact: kube_version={{ kubernetes_latest_version.stdout }}
+    when: kube_version is not defined
+
+  - name: get latest kubeadm
+    become: true
+    get_url:
+      url: https://dl.k8s.io/release/{{ kube_version }}/bin/linux/amd64/kubeadm
+      dest: /tmp/kubeadm
+      owner: root
+      mode: 0775
+
+  - name: move kubeamd binary
+    become: yes
+    command: mv -f /tmp/kubeadm /usr/bin/kubeadm
+    
+  - name: set cgroup to match docker cgroup in systemd conf
+    become: true
+    command: sed -i s/systemd/cgroupfs/g /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+
+  - name: systemctl reload-daemon
+    become: true
+    command: systemctl daemon-reload
+  - name: set cluster configs
+    become: true
+    command: kubeadm config upload from-flags --apiserver-cert-extra-sans {{ external_ip }} --apiserver-bind-port {{ api_port }} --kubernetes-version {{ kube_version }}
+
+  - name: enable kubelet and start
+    become: true
+    systemd:
+      name: kubelet
+      enabled: yes
+      state: started
+      masked: no
+  - name: upgrade via kubeadm
+    become: true
+    command: echo "y" | kubeadm upgrade apply {{ kube_version }}
+
+- hosts: nodes[0:]
+  serial: 1
+  vars:
+    nodes: "{{ groups['nodes'] }}"
+  tasks:
+
+  - name: Get Latest kubernetes version tag
+    become: true
+    command: curl -sSL https://dl.k8s.io/release/stable.txt
+    register: kubernetes_latest_version
+    when: kube_version is not defined
+
+  - set_fact: kube_version={{ kubernetes_latest_version.stdout }}
+    when: kube_version is not defined
+
+  - name: Notify that upgrade has started on the node
+    delegate_to: localhost
+    slack:
+      token: 'T2BPP84RZ/B7JJ3QN8L/GxGtHn2gG0qkWlPl66HZjtn0'
+      msg: 'upgrading node: {{ inventory_hostname }} to version {{ kube_version }} migrating pods to other nodes.'
+      channel: #alerts
+      username: 'builderbot'
+      icon_emoji: ':bell:'
+      link_names: 0
+      parse: 'none'
+  
+  - name: Wait for api port to become active
+    local_action:
+      module: wait_for
+        host={{ nodes[0] }}
+        port={{ api_port }}
+        delay=2
+  
+  - name: cordon node {{ inventory_hostname }}  
+    command: kubectl --request-timeout 60s cordon {{ inventory_hostname }}
+    delegate_to: "{{ nodes[0] }}"
+
+  - name: check if kubelet is running
+    service: 
+      name: "kubelet"    
+      state: started     
+      enabled: yes
+    register: kubelet_status
+
+  - name: drain node
+    command: kubectl drain {{ inventory_hostname }} --ignore-daemonsets --force --grace-period=300
+    delegate_to: "{{ nodes[0] }}"
+    when: kubelet_status.status.SubState == "running"
+
+  - name: upgrade all packages
+    become: true
+    yum:
+     name: '*'
+     state: latest 
+
+  - name: clean existing docker install
+    become: true
+    command: yum -y erase docker-ce docker-selinux
+
+  - name: install docker
+    become: true
+    command: yum install -y --setopt=obsoletes=0 docker-ce-{{ docker_version }}.ce docker-ce-selinux-{{ docker_version }}.ce
+  - name: set cgroup to match docker cgroup in systemd conf
+    become: true
+    command: sed -i s/systemd/cgroupfs/g /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+
+  - name: enable docker and start
+    become: true
+    systemd:
+      name: docker
+      enabled: yes
+      state: started
+      masked: no
+
+  - name: systemctl reload-daemon
+    become: true
+    command: systemctl daemon-reload    
+  - name: restart kubelet
+    become: true
+    command: systemctl restart kubelet
+
+  - name: make sure kubelet starts
+    become: true
+    systemd:
+      name: kubelet
+      enabled: yes
+      state: started
+      masked: no
+
+  - name: Wait for api port to become active 
+    local_action:
+      module: wait_for
+        host={{ nodes[0] }}
+        port={{ api_port }}
+        delay=15
+
+  - name: uncordon node
+    command: kubectl --request-timeout 60s  uncordon {{ inventory_hostname }}
+    delegate_to: "{{ nodes[0] }}" 
+
+- hosts: nodes[0]
+  vars:
+    http_port: 80
+    max_clients: 200
+  tasks:
+  - name: Notify that upgrade has completed
+    slack:
+      token: 'T2BPP84RZ/B7JJ3QN8L/GxGtHn2gG0qkWlPl66HZjtn0'
+      msg: 'kubernetes upgrade complete on {{ cluster_name }}'
+      channel: #alerts
+      username: 'builderbot'
+      icon_emoji: ':bell:'
+      link_names: 0
+      parse: 'none'
+    delegate_to: localhost

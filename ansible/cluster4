@@ -1,0 +1,14 @@
+[nodes]
+cluster4n1.commandhistory.com ansible_ssh_host=10.10.1.11 ansible_ssh_user=kubeadm ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_become_pass=kubeadm
+cluster4n2.commandhistory.com ansible_ssh_host=10.10.1.12 ansible_ssh_user=kubeadm ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_become_pass=kubeadm
+cluster4n3.commandhistory.com ansible_ssh_host=10.10.1.13 ansible_ssh_user=kubeadm ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_become_pass=kubeadm
+cluster4n4.commandhistory.com ansible_ssh_host=10.10.1.14 ansible_ssh_user=kubeadm ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_become_pass=kubeadm
+#cluster4n5.commandhistory.com ansible_ssh_host=10.10.10.40 ansible_ssh_user=kubeadm ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_become_pass=kubeadm
+
+
+[nodes:vars]
+docker_version=17.03.2
+external_ip=<MY_EXTERNAL_IP>
+api_port=6444
+kubeadm_network_addon_url=https://cloud.weave.works/k8s/net?k8s-version=
+cluster_name="cluster 2"

@@ -1,0 +1,69 @@
+---
+
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: heketi
+  labels:
+    glusterfs: {{ template "name" . }}
+    heketi: deployment
+    app: {{ template "name" . }}
+    chart: '{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}'
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  annotations:
+    description: Defines how to deploy Heketi
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: heketi
+      labels:
+        glusterfs: heketi-pod
+        heketi: pod
+    spec:
+      serviceAccountName: '{{ template "name" . }}'
+      containers:
+      - image: heketi/heketi:dev
+        imagePullPolicy: IfNotPresent
+        name: heketi
+        #command: ["tail", "-f", "/dev/null"]
+        env:
+        - name: HEKETI_USER_KEY
+          value: admin
+        - name: HEKETI_ADMIN_KEY
+          value: "My Secret Life"
+        - name: HEKETI_EXECUTOR
+          value: ssh
+        - name: HEKETI_FSTAB
+          value: ${HEKETI_FSTAB}
+        - name: HEKETI_SNAPSHOT_LIMIT
+          value: '14'
+        - name: HEKETI_KUBE_GLUSTER_DAEMONSET
+          value: "n"
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: config
+          mountPath: /etc/heketi
+        - name: secrets
+          mountPath: /etc/heketi/secrets
+#        readinessProbe:
+#          timeoutSeconds: 3
+#          initialDelaySeconds: 3
+#          httpGet:
+#            path: "/hello"
+#            port: 8080
+#        livenessProbe:
+#          timeoutSeconds: 3
+#          initialDelaySeconds: 30
+#          httpGet:
+#            path: "/hello"
+#            port: 8080
+      volumes:
+      - name: config
+        configMap:
+          name: "{{ template "name" . }}"
+      - name: secrets
+        secret:
+          secretName: "{{ template "name" . }}"

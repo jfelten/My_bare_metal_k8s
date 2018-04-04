@@ -1,0 +1,15 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: glusterfs
+  labels:
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+provisioner: kubernetes.io/glusterfs
+parameters:
+  resturl: "http://{{ template "name" . }}heketi.{{ .Release.Namespace }}.svc.cluster.local:8080"
+  clusterid: "96431072a1db26aeee6cdfa627cf9744"
+  restuser: "admin"
+  restuserkey: "My Secret Life"

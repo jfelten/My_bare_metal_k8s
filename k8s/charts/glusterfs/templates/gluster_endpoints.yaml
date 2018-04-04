@@ -1,0 +1,27 @@
+kind: Endpoints
+apiVersion: v1
+metadata:
+  name: {{ template "name" . }}
+  labels:
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+subsets:
+- addresses:
+  - ip: 10.10.10.17
+  ports:
+  - port: 1
+    name: glusterport
+    protocol: TCP
+- addresses:
+  - ip: 10.10.10.18
+  ports:
+  - port: 1
+    name: glusterport
+    protocol: TCP
+- addresses:
+  - ip: 10.10.10.19
+  ports:
+  - name: glusterport
+    port: 1
+    protocol: TCP

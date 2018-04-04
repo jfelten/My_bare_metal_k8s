@@ -1,0 +1,20 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ template "name" . }}heketi
+  labels:
+    glusterfs: heketi-service
+    heketi: service
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  annotations:
+    description: Exposes Heketi Service
+spec:
+  selector:
+    glusterfs: heketi-pod
+  ports:
+  - name: heketi
+    port: 8080
+    targetPort: 8080

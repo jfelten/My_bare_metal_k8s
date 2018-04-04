@@ -1,0 +1,121 @@
+
+
+- hosts: all 
+  vars:
+    http_port: 80
+    max_clients: 200
+    nodes: "{{ groups['nodes'] }}"
+  remote_user: all 
+
+  tasks:
+
+  - name: upgrade all packages
+    become: true
+    yum:
+     name: '*'
+     state: latest
+
+  - name: add host file entries
+    become: true
+    become_user: root
+    lineinfile:
+      dest: /etc/hosts
+      regexp: '.*{{ item }}$'
+      line: '{{ hostvars[item].ansible_ssh_host }} {{item}}'
+      state: present
+    with_items: "{{ nodes }}"
+
+  - name: Install docker repo
+    become: true
+    command: sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+  - name: clean existing docker install
+    become: true
+    command: yum -y erase docker-ce docker-selinux
+
+  - name: install docker
+    become: true
+    command: yum install -y --setopt=obsoletes=0 docker-ce-{{ docker_version }}.ce docker-ce-selinux-{{ docker_version }}.ce
+
+  - name: Install kubernetes yum repo
+    become: true
+    yum_repository:
+      name: Kubernetes
+      description: kubernetes yum repo
+      baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+      gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+      gpgcheck: yes
+
+  - name: install k8s packages
+    become: true
+    yum:
+      name: kubelet, kubeadm, yum-utils, device-mapper-persistent-data, lvm2, golang, git
+      state: latest
+
+  - name: get crictl
+    become: true
+    command: go get github.com/kubernetes-incubator/cri-tools/cmd/crictl
+
+  - name: copy crictl to /usr/local/bin
+    become: true
+    command: cp ~/go/bin/crictl /usr/local/bin
+
+  - name: disable memory swap
+    become: true
+    become_user: root
+    command: swapoff -a
+
+ - name: ensure swap is off after reboot
+    become: true
+    become_user: root
+    lineinfile:
+      path:  /etc/rc.d/rc.local
+      line: 'swapoff -a'
+
+  - name: make sure /etc/rc.d/rc.local is executable
+    become: true
+    command: chmod +x /etc/rc.d/rc.local
+
+  - name: enable /proc/sys/net/bridge/bridge-nf-call-iptables
+    become: true
+    command: "echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables"
+
+  - name: enable iptables after start
+    become: true
+    become_user: root
+    lineinfile:
+      path:  /etc/rc.d/rc.local
+      line: "echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables"
+
+  - name: enable ip-tables flag on start
+    become: true
+    command: echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables >> /etc/rc.local
+
+  - name: set cgroup to match docker cgroup in systemd conf
+    become: true
+    command: sed -i s/systemd/cgroupfs/g /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+
+  - name: ensure bridge-nf-tables
+    become: true
+    become_user: root
+    lineinfile:
+      dest: /etc/sysctl.conf
+      line: 'net.bridge.bridge-nf-call-iptables = 1'
+      state: present
+
+  - name: refresh sysctl
+    become: true
+    become_user: root
+    command: sysctl -p 
+
+  - name: systemctl reload-daemon
+    become: true
+    command: systemctl daemon-reload
+
+  - name: enable kubelet and start
+    become: true
+    systemd:
+      name: kubelet
+      enabled: yes
+      state: started
+      masked: no

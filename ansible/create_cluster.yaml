@@ -1,0 +1,115 @@
+
+- hosts: all
+  become: yes
+  become_method: sudo
+  tasks:
+
+  - name: enable dockerd and start
+    become: true
+    systemd:
+      name: docker
+      enabled: yes
+      state: started
+      masked: no
+
+  - name: Reset cluster
+    command: /usr/bin/kubeadm reset
+
+  - name: kill kube scheduler
+    shell: "pkill kube-scheduler | :"
+    become: true
+
+  - name: enable kubelet and start
+    become: true
+    systemd:
+      name: kubelet
+      enabled: yes
+      state: started
+      masked: no
+
+- hosts: nodes[0]
+  become: yes
+  become_method: sudo
+  tasks:
+
+  - name: Generate cluster token
+    command: /usr/bin/kubeadm token generate
+    register: kubeadm_token_generate
+
+  - set_fact: kubeadm_token={{ kubeadm_token_generate.stdout }}
+    when: kubeadm_token is not defined
+  
+  - name: Initialize cluster
+    command: /usr/bin/kubeadm init --token {{ kubeadm_token }} --apiserver-cert-extra-sans {{ external_ip }} --apiserver-bind-port {{ api_port }}
+
+  - name: generate discovery-token-ca-cert-hash
+    shell: openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //' 
+    register: discovery_token_hash
+
+  - set_fact: discovery_token_ca_cert_hash=sha256:{{ discovery_token_hash.stdout }}
+    when: discovery_token_ca_cert_hash is not defined
+
+  - name: copy kubeconfig for John
+    file:
+      path: /home/jfelten/.kube
+      state: directory
+      mode: 0755
+      owner: jfelten
+  - name: copy file 
+    become: yes
+    become_method: sudo
+    command: cp -f /etc/kubernetes/admin.conf /home/jfelten/.kube/config
+  - file:
+      path: /home/jfelten/.kube/config
+      owner: jfelten
+      mode: 0755
+
+  - name: copy kubeconfig for Peter
+    file:
+      path: /home/plamanna/.kube
+      state: directory
+      mode: 0755
+      owner: plamanna
+
+  - name: copy file
+    become: yes
+    become_method: sudo
+    command: cp -f /etc/kubernetes/admin.conf /home/plamanna/.kube/config
+  - file:
+      path: /home/plamanna/.kube/config
+      owner: plamanna
+      mode: 0755
+
+  - name: copy kubeconfig for kubeadm
+    file:
+      path: /home/kubeadm/.kube
+      state: directory
+      mode: 0755
+      owner: kubeadm
+
+  - name: copy file
+    become: yes
+    become_method: sudo
+    command: cp -f /etc/kubernetes/admin.conf /home/kubeadm/.kube/config
+
+  - file:
+      path: /home/kubeadm/.kube/config
+      owner: kubeadm
+      mode: 0755
+
+  - name: Create cluster network
+    command: "/usr/bin/kubectl apply -f {{ kubeadm_network_addon_url }}{{ kubernetes_version }}"
+    environment:
+      KUBECONFIG: /etc/kubernetes/admin.conf
+
+  - name: Wait 1 minute for images pulls and cluster services to start
+    pause: minutes=1
+
+- hosts: nodes[1:]
+  become: yes
+  become_method: sudo
+  vars:
+    master_node: "{{ groups['nodes'][0] }}"
+  tasks:
+  - name: Join cluster
+    command: /usr/bin/kubeadm join {{ master_node }}:{{ api_port }} --token {{ hostvars[groups['nodes'][0]]['kubeadm_token'] }} --discovery-token-ca-cert-hash {{ hostvars[groups['nodes'][0]]['discovery_token_ca_cert_hash'] }}

@@ -1,0 +1,2 @@
+1. The endpoints and storage class for gluster fs are now installed.
+

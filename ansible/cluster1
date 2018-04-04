@@ -1,0 +1,12 @@
+[nodes]
+cluster1n1 ansible_ssh_host=10.10.10.36 ansible_ssh_user=<USER> ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_become_pass=<PASSWORD>
+cluster1n2 ansible_ssh_host=10.10.10.37 ansible_ssh_user=<USER> ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_become_pass=<PASSWORD>
+cluster1n3 ansible_ssh_host=10.10.10.38 ansible_ssh_user=<USER> ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_become_pass=<PASSWORD>
+cluster1n4 ansible_ssh_host=10.10.10.39 ansible_ssh_user=<USER> ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_become_pass=<PASSWORD>
+
+[nodes:vars]
+docker_version=17.03.2
+external_ip=MY_EXTERNAL_IP>
+api_port=6443
+kubeadm_network_addon_url=https://cloud.weave.works/k8s/net?k8s-version=
+cluster_name="cluster 1"
