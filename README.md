@@ -1,11 +1,11 @@
 # My Bare Metal Kubernetes Lab Set Up
 
-* [Introduction](https://github.com/jfelten/README.md#introduction)
-* [Prerequisites](https://github.com/jfelten/README.md#prereq)
-* [Hardware set up](https://github.com/jfelten/hardware.md)
-* [Storage set up](https://github.com/jfelten/storage.md)
-* [Kubernetes set up](https://github.com/jfelten/kubernetes.md)
-* [Cluster operations](https://github.com/jfelten/clusterops.md)
+* [Introduction](https://github.com/jfelten/My_bare_metal_k8s/blob/master/README.md#introduction)
+* [Prerequisites](https://github.com/jfelten/My_bare_metal_k8s/blob/master/README.md#prereq)
+* [Hardware set up](https://github.com/jfelten/My_bare_metal_k8s/blob/master/hardware.md)
+* [Storage set up](https://github.com/jfelten/My_bare_metal_k8s/blob/master/storage.md)
+* [Kubernetes set up](https://github.com/jfelten/My_bare_metal_k8s/blob/master/kubernetes.md)
+* [Cluster operations](https://github.com/jfelten/My_bare_metal_k8s/blob/master/clusterops.md)
 
 ## <a name="introduction"></a>Introduction
 
@@ -13,13 +13,13 @@ This is a write up of my personal lab. It runs on a Dell 6105c with 3 blades. Ea
 
 I use CentOS 7 because I am more experienced with RHEL variants. In hindsight, a Debian variant may have been a better choice due to better support for both kubernetes and KVM. CentOS does not support 9p virtio although it can be used with a custom kernel, which would have been nice for mounting host volumes. Kubernetes doesn't work out of the box on Centos without a few tweaks that are in the ansible scripts.  That being said, CentOS is stable once set up.
 
-This set up works well for my lab needs, but I in no way advocate it for a production set-up. When it comes to bare metal there is no one size fits all, and this write is mostly useful as a point of reference. 
+This set up works well for my lab needs, but I do not advocate it as the best way to go. When it comes to bare metal there is no one size fits all, and this write is mostly useful as a point of reference. 
 
-VMs are a nice way to divide up a large chunk of hardware for containerization, but I am seriously considering lxc as well.
+VMs are a nice way to divide up a large chunk of hardware, but lxc could be used as well.
 
 ## <a name="prereq"></a>Prerequisites
 
-You'll need hardware and lots of it.  A kubernetes cluster requires three things: CPU, memory, and disk.  Each node should at a minimum have at least one CPU core,  twoGB of RAM, and enough disk to store several large docker files.  
+You'll need hardware and lots of it.  A kubernetes cluster requires three things: CPU, memory, and disk.  Each node should at a minimum have at least one CPU core,  two GB of RAM, and enough disk to store many large docker files.  
 
 Extra storage for dynamic allocation by kubernetes is also recommended because many kubernetes examples and helm charts assume a working default storage provider for persistent volumes.  If you are fortunate enough to have extra dedicated SAN avaiable use it.  Otherwise you'll have to cobble together one like I did with glusterfs.
 
@@ -27,4 +27,4 @@ How a bare metal cluster is built depends the underlying hardware.  Once there a
 
 In order to use the ansible and kubernetes scripts you'll need a place to run them be it a developer laptop or VPC in the cloud.  This environment should at a minimum have git, ansible, kubectl and helm installed.  A text editor too, which should go without saying.
 
-### next: [hardware setup](https://github.com/jfelten/hardware.md)
+### next: [hardware setup](https://github.com/jfelten/My_bare_metal_k8s/blob/master/hardware.md)

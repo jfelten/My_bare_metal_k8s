@@ -1,27 +1,27 @@
 # My Bare Metal Kubernetes Lab Cluster Installation
 
-* [Introduction](https://github.com/jfelten/README.md#introduction)
-* [Prerequisites](https://github.com/jfelten/README.md#prereq)
-* [Hardware set up](https://github.com/jfelten/hardware.md)
-* [Storage set up](https://github.com/jfelten/storage.md)
-* [Kubernetes set up](https://github.com/jfelten/kubernetes.md)
-* [Cluster operations](https://github.com/jfelten/clusterops.md)
+* [Introduction](https://github.com/jfelten/My_bare_metal_k8s/blob/master/README.md#introduction)
+* [Prerequisites](https://github.com/jfelten/My_bare_metal_k8s/blob/master/README.md#prereq)
+* [Hardware set up](https://github.com/jfelten/My_bare_metal_k8s/blob/master/hardware.md)
+* [Storage set up](https://github.com/jfelten/My_bare_metal_k8s/blob/master/storage.md)
+* [Kubernetes set up](https://github.com/jfelten/My_bare_metal_k8s/blob/master/kubernetes.md)
+* [Cluster operations](https://github.com/jfelten/My_bare_metal_k8s/blob/master/clusterops.md)
 
 ## Create a Kubernetes cluster that runs in kvm based nodes
 
-I use VMs to divide up my hardware.  While it is tempting to install a large cluster running directly on each blade I decided to use vm templates for the flexibility, safety and isolation. There are breakages and incompatibilities with each new kubernetes release and I usually have to massage the node image and ansible scripts.
+I decided to use kvm vm templates for the flexibility, safety and isolation. There are breakages and incompatibilities with each new kubernetes release and I usually have to massage the node image and ansible scripts.
 
-For reliability I try to keep my blade OS as simple and unencumbered as possible.
+For reliability I try to keep my blade OS as clean as possible.
 
 ### cluster node sizing
 
-At this point in time sizing a kubernetes node is more art than science and depends a lot on what it runs.  I have standardized on 4 node clusters with 4 GB RAM 2 CPU cores, and 100 GB of disk.  This should be enough to run most medium sized applications.  As time passes node resources will be adjusted as necessary.
+At this point in time sizing a kubernetes node is more art than science and depends a lot on what it runs.  I have standardized on 4 node clusters with 4 GB RAM 2 CPU cores, and 100 GB of disk on each.  This should be enough to run most medium sized applications.  As time passes node resources will be adjusted as necessary.
 
 ### create a kvm node template
 
 My approach to VMs is to create once then clone.  The naming schema for nodes is cluster\<CLUSTER#>n\<NODE#>.  
 
-To starc reate a kvm VM called cluster1n1( cluster 1 node 1) attached to bridge br1 and install CentOS 7 minimal via:
+To create a kvm VM called cluster1n1( cluster 1 node 1) attached to bridge br1 and install CentOS 7 minimal via:
 
 ```bash
 # virt-install \
@@ -262,7 +262,7 @@ ansible-playbook ansible/create_cluster.yaml -i ansible/cluster1
 
 ## Upgrading to a newer version of kubernetes
 
-The thrid ansible script upgrades and existing clsuter to a new version of kubernetes. Since I live on the bleeding edge I just always to the latest. Kubeadm does support specific kubernetes version installs so the script could be adpated to install a specific kubernetes version
+The third ansible script upgrades and existing cluster to a new version of kubernetes. Since I live on the bleeding edge I always try to run the latest. Kubeadm does support specific kubernetes version installs so the script could be adpated to install a specific kubernetes version if needed.
 
 To upgrade an existing cluster to the latest version of kubernetes:
  
@@ -270,4 +270,4 @@ To upgrade an existing cluster to the latest version of kubernetes:
 ansible-playbook ansible/upgrade.yaml -i ansible/cluster1
 ```
 
-### next: [cluster operations](https://github.com/jfelten/clusterops.md)
+### next: [cluster operations](https://github.com/jfelten/My_bare_metal_k8s/blob/master/clusterops.md)

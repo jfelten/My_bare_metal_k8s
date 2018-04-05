@@ -1,11 +1,11 @@
 # My Bare Metal Kubernetes Lab Dynamic Storage Set Up
 
-* [Introduction](https://github.com/jfelten/README.md#introduction)
-* [Prerequisites](https://github.com/jfelten/README.md#prereq)
-* [Hardware set up](https://github.com/jfelten/hardware.md)
-* [Storage set up](https://github.com/jfelten/storage.md)
-* [Kubernetes set up](https://github.com/jfelten/kubernetes.md)
-* [Cluster operations](https://github.com/jfelten/clusterops.md)
+* [Introduction](https://github.com/jfelten/My_bare_metal_k8s/blob/master/README.md#introduction)
+* [Prerequisites](https://github.com/jfelten/My_bare_metal_k8s/blob/master/README.md#prereq)
+* [Hardware set up](https://github.com/jfelten/My_bare_metal_k8s/blob/master/hardware.md)
+* [Storage set up](https://github.com/jfelten/My_bare_metal_k8s/blob/master/storage.md)
+* [Kubernetes set up](https://github.com/jfelten/My_bare_metal_k8s/blob/master/kubernetes.md)
+* [Cluster operations](https://github.com/jfelten/My_bare_metal_k8s/blob/master/clusterops.md)
 
 ## Create the glusterfs storage array
 
@@ -242,6 +242,6 @@ sudo gluster volume create certs replica 3 10.10.10.17:/data/certs 10.10.10.19:/
 Now that the gluster peers are running with attached storage let's talk about [heketi](https://github.com/heketi/heketi).  [Heketi](https://github.com/heketi/heketi) is a service written in Go that provides a RESTful interface for glusterfs operations. For this purpose let's assume a running kubernetes cluster because that's how I run heketi.  Heketi requires 2 main configurations:
 A toplogy file that lists the addresses of each glsuterfs peer and a heketi.json file that references ssh keys used to execute on each peer. I have included a helm chart that I use to bootstrap heketi on my kubernetes clusters (k8s/charts/glusterfs).  To adapt this to your setup change the endpoint ips: k8s/charts/glusterfs/templates/gluster_endpoints.yaml, the ssh secrets: charts/glusterfs/templates/gluster_secret.yaml, and and custom hekei configs:   charts/glusterfs/templates/heketi_configs.yaml.  All the values are for my lab.  You will need to install your own ssh keys assuming you run VMS and add them to the hekti secrets file.
 
-### next: [kubernetes setup](https://github.com/jfelten/kubernetes.md)
+### next: [kubernetes setup](https://github.com/jfelten/My_bare_metal_k8s/blob/master/kubernetes.md)
 
 

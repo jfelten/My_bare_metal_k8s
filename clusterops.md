@@ -1,11 +1,11 @@
 # My Bare Metal Kubernetes Lab Cluster Operations
 
-* [Introduction](https://github.com/jfelten/README.md#introduction)
-* [Prerequisites](https://github.com/jfelten/README.md#prereq)
-* [Hardware set up](https://github.com/jfelten/hardware.md)
-* [Storage set up](https://github.com/jfelten/storage.md)
-* [Kubernetes set up](https://github.com/jfelten/kubernetes.md)
-* [Cluster operations](https://github.com/jfelten/clusterops.md)
+* [Introduction](https://github.com/jfelten/My_bare_metal_k8s/blob/master/README.md#introduction)
+* [Prerequisites](https://github.com/jfelten/My_bare_metal_k8s/blob/master/README.md#prereq)
+* [Hardware set up](https://github.com/jfelten/My_bare_metal_k8s/blob/master/hardware.md)
+* [Storage set up](https://github.com/jfelten/My_bare_metal_k8s/blob/master/storage.md)
+* [Kubernetes set up](https://github.com/jfelten/My_bare_metal_k8s/blob/master/kubernetes.md)
+* [Cluster operations](https://github.com/jfelten/My_bare_metal_k8s/blob/master/clusterops.md)
 
 ## Cluster Operations
 
@@ -28,4 +28,4 @@ I always try to run the newest version possible unless I know a release is probl
 * VM failure - during once such hard shut down one of the gluster VM's oeprating system disk became corrupted and had to be rebuit. Always keep backups!
 * Kubernetes upgrade hell - The kubeadm uopgrade from 1.7 to 1.8 was particuarly troublesome and required a complete rebuild of all clusters.
 
-Right now all is well and as kubernetes matures I am hoping it becomes more stable.  IF you have a bare metal cluster and want to standardize on a toolset or need to test something on bare metal let me knw.
+Right now all is well and as kubernetes matures I am hoping it becomes more stable.  If you have a bare metal cluster and want to standardize on a toolset or need to test something on bare metal let me know.
