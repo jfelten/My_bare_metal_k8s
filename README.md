@@ -474,7 +474,7 @@ sudo gluster volume create certs replica 3 10.10.10.17:/data/certs 10.10.10.19:/
 Now that the physical hardware, storage, and VM nodes are set up it is time install kubernetes.  For this, I have created ansible scripts to manage the life cycle of the kubernetes clusters.
 
 | Script              | Purpose                                             |
-|---------------------|:---------------------------------------------------:|
+|---------------------|:---------------------------------------------------|
 |install_k8s.yaml     | Installs the kubernetes software on each node       |
 |create_cluster.yaml  | creates a new cluster using kubeadm                 |
 |upgrade.yaml         | upgrades a cluster to the new version using kubeadm |
@@ -501,7 +501,7 @@ cluster_name="cluster 1"
 The first node is always considered the master by the ansible scripts:
 
 | variable                | Purpose                                                      |
-|-------------------------|:-----------------------------------------------------------:|
+|-------------------------|:-----------------------------------------------------------|
 |external_ip              | an externally available address - in my case ISP assigned IP|
 |docker_version           | version of docker installed on nodes                        |
 |api_port=6443            | cluster API port                                            |
