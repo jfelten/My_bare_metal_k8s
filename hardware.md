@@ -3,7 +3,7 @@
 * [Introduction](https://github.com/jfelten/My_bare_metal_k8s/blob/master/README.md#introduction)
 * [Prerequisites](https://github.com/jfelten/My_bare_metal_k8s/blob/master/README.md#prereq)
 * [Hardware set up](https://github.com/jfelten/My_bare_metal_k8s/blob/master/hardware.md)
-* [Storage set up](hhttps://github.com/jfelten/My_bare_metal_k8s/blob/master/storage.md)
+* [Storage set up](https://github.com/jfelten/My_bare_metal_k8s/blob/master/storage.md)
 * [Kubernetes set up](https://github.com/jfelten/My_bare_metal_k8s/blob/master/kubernetes.md)
 * [Cluster operations](https://github.com/jfelten/My_bare_metal_k8s/blob/master/clusterops.md)
 
