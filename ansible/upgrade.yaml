@@ -6,10 +6,10 @@
   tasks:
   - name: Notify that upgrade has started
     slack:
-      token: 'T2BPP84RZ/B7JJ3QN8L/GxGtHn2gG0qkWlPl66HZjtn0'
+      token: '{{ slack_token }}'
       msg: 'kubernetes uppgrade in progress - upgrading control plane on {{ cluster_name }}'
-      channel: #alerts
-      username: 'builderbot'
+      channel: '{{ slack_channel }}'
+      username: '{{ slack_user }}'
       icon_emoji: ':bell:'
       link_names: 0
       parse: 'none'
@@ -76,7 +76,7 @@
   - name: Notify that upgrade has started on the node
     delegate_to: localhost
     slack:
-      token: 'T2BPP84RZ/B7JJ3QN8L/GxGtHn2gG0qkWlPl66HZjtn0'
+      token: '{{ slack_token }}'
       msg: 'upgrading node: {{ inventory_hostname }} to version {{ kube_version }} migrating pods to other nodes.'
       channel: #alerts
       username: 'builderbot'
@@ -165,10 +165,10 @@
   tasks:
   - name: Notify that upgrade has completed
     slack:
-      token: 'T2BPP84RZ/B7JJ3QN8L/GxGtHn2gG0qkWlPl66HZjtn0'
+      token: '{{ slack_token }}'
       msg: 'kubernetes upgrade complete on {{ cluster_name }}'
-      channel: #alerts
-      username: 'builderbot'
+      channel: '{{ slack_channel }}'
+      username: '{{ slack_user }}'
       icon_emoji: ':bell:'
       link_names: 0
       parse: 'none'

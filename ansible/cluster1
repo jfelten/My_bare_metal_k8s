@@ -10,3 +10,7 @@ external_ip=MY_EXTERNAL_IP>
 api_port=6443
 kubeadm_network_addon_url=https://cloud.weave.works/k8s/net?k8s-version=
 cluster_name="cluster 1"
+
+slack_token=<MY_SLACK_TOKEN>
+slack_user="clusterbot"
+slack_channel="#alerts"
