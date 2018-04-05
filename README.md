@@ -1,17 +1,18 @@
 # My Bare Metal Kubernetes Lab Set Up
 
-This is a write up of my personal lab. It runs on a Dell 6105c with 3 blades. Each blade uses kvm to run virtual machines that host the kubernetes and storage nodes. It supports 3 or more clusters depending on configuration. The target cluster size is 8 physical cores 16 GB total memory, and 400 GB node storage.  Each node lives on a virtual machine that uses  2 cores, 4 GB, and 100 GB of disk. All kubernetes nodes reside on a kvm virtual machines running CentOS 7 and are managed through a set of ansible scripts. Dynamic storage is handled through glusterfs that runs independently of kubernetes. All of the required kubernetes bits to bootstrap the cluster are provided in custom helm charts that is applied after the cluster is created. I provide detailed steps, scripts, kuberentes files, and the helm charts used for my set up.
+This is a write up of my personal lab. It runs on a Dell 6105c with 3 blades. Each blade uses KVM to run virtual machines that host the kubernetes and storage nodes. It supports 3 or more clusters depending on configuration. The target cluster size is 8 physical cores 16 GB total memory, and 400 GB node storage.  Each node lives on a virtual machine that uses 2 cores, 4 GB, and 100 GB of disk. All kubernetes nodes reside on a KVM virtual machines running CentOS 7 and are managed through a set of Ansible scripts. Dynamic storage is handled through glusterfs that run independently of kubernetes. All of the required kubernetes bits to bootstrap the cluster are provided in custom helm charts that are applied after the cluster is created. I provide detailed steps, scripts, kuberentes files, and the helm charts used for my set up.
 
-I use CentOS 7 because I am more experienced with RHEL variants. In hindsight a Debian variant may have been a better choice due to better support for both kubernetes and KVM. CentOS does not support 9p virtio although it can be used with a custom kernel, which would have been nice for mounting host volumes. Kubernetes doesn't work out of the box on Centos without a few tweaks that are in the ansible scripts.  That being said, CentOS is stable once set up.
+I use CentOS 7 because I am more experienced with RHEL variants. In hindsight, a Debian variant may have been a better choice due to better support for both kubernetes and KVM. CentOS does not support 9p virtio although it can be used with a custom kernel, which would have been nice for mounting host volumes. Kubernetes doesn't work out of the box on Centos without a few tweaks that are in the ansible scripts.  That being said, CentOS is stable once set up.
 
 
 ## Server Chassis
-The hardware is a Dell 6105c 2U purchased a few years ago.  The hardware dates from 2011 or so and is set up with 3 blades each containing 48GB of DDR2 RAM and 2 6 core AMD opteratron processors for a total of 144G and 36 cores. Each blade runs CentOS 7 as the base OS.  All told I have about $500 invested.  The hardware is even older and cheaper now than when I purchased it.
+The hardware is a Dell 6105c 2U purchased a few years ago.  The hardware dates from 2011 or so and is set up with 3 blades each containing 48GB of DDR2 RAM and 2 6 core AMD Opteron processors for a total of 144G and 36 cores. Each blade runs CentOS 7 as the base OS.  All told I have about $500 invested.  The hardware is even older and cheaper now than when I purchased it.
 
 ## Storage
-Each blade accesses 4 physical drives of varying amounts of storage for a total of 12 physical SATA drives. On 2 of the blades I set up RAID 1 storage consisting of 2 drives. 1 blade has a RAID 0 storage. The disk arrays are used to back a glusterfs storage array that is then used by all kubernetes cluster
+Each blade accesses 4 physical drives of varying amounts of storage for a total of 12 physical SATA drives. On two of the blades, I set up RAID 1 storage consisting of two drives. One blade has a RAID 0 storage. The disk arrays are used to back a glusterfs storage array that is then used by all kubernetes clusters.
 
-#### Disk arrangement as viewed from front of chassis
+#### Disk arrangement as viewed from the front of the chassis:
+
 ```
                            +-----------------+
                            |    RAID 1       |
@@ -30,7 +31,8 @@ Blade 3| 250 GB| | 250 GB| | 750 GB| | 750 GB|
 
 ## Host Network
 
-Each blade has 2 Physical NICs. Each NIC uses bridged networking. NIC 1 on each blade is joined to linux bridge designated br0, which uses the main lab network 10.10.10.0/24  NIC 2 on each host uses a bridge designated br1, and each blade has a different subnet blade1: 10.10.1.0/24, blade 2: 10.10.2.0/24, blade 3 10.10.3.0/24.  The 2nd NIC network is used for all node VMs and the intent was to isolate kubernetes clusters on a separate network.
+Each blade has 2 physical NICs. Each NIC uses bridged networking. NIC 1 on each blade is joined to Linux bridge designated br0, which uses the main lab network 10.10.10.0/24. NIC 2 on each host uses a bridge-
+designated br1, and each blade has a different subnet (blade1: 10.10.1.0/24, blade 2: 10.10.2.0/24, blade 3 10.10.3.0/24.) The second NIC network is used for all node VMs; the intent is to isolate kubernetes clusters on a separate network.
 
 ```
             NIC 1: Lab Network  NIC 2: k8s Network
@@ -51,13 +53,13 @@ Each blade has 2 Physical NICs. Each NIC uses bridged networking. NIC 1 on each 
 
 I will provide detailed steps where important
 
-Install CentOS 7 minimal and then add packages as needed. I prefer to keep the blade OS install as clean and minimal as possible, but you will need the libvirtd packages to run kvm.  Any service not related to keep the node alive should be run in a vm or container.
+Install CentOS 7 minimal and then add packages as needed. I prefer to keep the blade OS install as clean and minimal as possible, but you will need the libvirtd packages to run KVM.  Any service not related to keeping the node alive should be run in a VM or container.
 
 ### Network setup
 
-Each blade has 2 physical NICs and each NIC gets enslaved to a different bridge.  Interfeace 1, en0 is enslaved to bridge br0, which is given a static ip onn network 10.10.10.0/24, the lab netowrk. Interface 2, en1, is enslaved to bridged br1 which is a spearate subnet shared by kubernetes node VMs.
+Each blade has 2 physical NICs and each NIC gets enslaved to a different bridge.  Interface 1, en0 is enslaved to bridge br0, which is given a static IP on network 10.10.10.0/24, the lab network. Interface 2, en1, is enslaved to bridged br1 which is a separate subnet shared by kubernetes node VMs.
 
-First create the bridge br1, which will be the general lab network. There are tools to do this, but I find it easier to just add the file: /etc/sysconfig/network-scripts/ifcfg-br1
+First create the bridge br1, which will be the general lab network. There are tools to do this, but I find it easier to just add the file: /etc/sysconfig/network-scripts/ifcfg-br1.
 
 ```
 cat /etc/sysconfig/network-scripts/ifcfg-br1
@@ -71,7 +73,7 @@ NETMASK=255.255.255.0
 GATEWAY=10.10.10.1
 ```
 
-The physical NICS are designated as p4p1 and p4p2.  Each one will be enslaved to a bridge.  In this case en1 is enslaved to bridge br1 by changing the interface file:
+The physical NICs are designated as p4p1 and p4p2.  Each one will be enslaved to a bridge.  In this case, en1 is enslaved to bridge br1 by changing the interface file:
 
 ```
 cat /etc/sysconfig/network-scripts/ifcfg-p4p2
@@ -81,7 +83,7 @@ BOOTPROTO=none
 BRIDGE=br1
 ```
 
-Next create the bridge br0 and enslave it to the interface p4p1.  Since we are on blade 3 we will have the bridge address will be 10.10.3.1 and act as a gateway for any VMs created:
+Next, create the bridge br0 and enslave it to the interface p4p1.  Since we are on blade 3 we will have the bridge address will be 10.10.3.1 and act as a gateway for any VMs created:
 
 ```
 cat /etc/sysconfig/network-scripts/ifcfg-br0
@@ -125,7 +127,7 @@ Once a vm is created get the xml definition:
 # virsh dumpxml cluster1n1 > cluster1n1.xml
 ```
 
-Now copy the cluster1n1.xml file 3 times to create the cluster1n2-cluster1n4 xml files.  Copy the disk files as well and rename the references in the resulting xml files.  Also be sure to edit the files to give each VM and to give each clone a unique network MAC address.  Here is a python script that generates a random MAC address:
+Now copy the cluster1n1.xml file 3 times to create the cluster1n2-cluster1n4 XML files.  Copy the disk files as well and rename the references in the resulting XML files.  Also be sure to edit the files to give each VM and to give each clone a unique network MAC address.  Here is a python script that generates a random MAC address:
 
 ```bash
 cat generateMac.sh
@@ -283,15 +285,15 @@ Much of this could be automated, but I have not had to do it enough to justify t
 
 ## Create the glusterfs storage array
 
-I chose to use glusterfs as my storage proide mainly because I was using a RHEL variant.  I did try rook, but quickly gave up due to underlying ceph issues that looked hard to solve.  Glusterfs works out of the box on CentOS, and is realatively straightforward to use.  There is even a service based front end called heketi that can act as a dynamic storage provisioner in kubernetes.  Overall I am pleased with glusterfs.
+I chose to use glusterfs as my storage provide mainly because I was using an RHEL variant.  I did try rook but quickly gave up due to underlying ceph issues that looked hard to solve.  Glusterfs works out of the box on CentOS and is relatively straightforward to use.  There is even a service-based front end called heketi that can act as a dynamic storage provisioner in kubernetes.  Overall I am pleased with glusterfs.
 
-There are many ways to run glusterfs: directly on the blades, vms, straight up docker, or kubernetes.  There is a nice example glusterfs kubernetes example that includes heketi and a glsuterfs storage class.  I chose not to run gluster inside kubernetes, because I wanted it to be a separate first class citizen resource that is shared among multiple clusters.  I also chose not run run gluster on my blades to avoid catestrophic hardware failure.  
+There are many ways to run glusterfs: directly on the blades, VMS, straight up docker, or kubernetes.  There is a nice example glusterfs kubernetes example that includes heketi and a glsuterfs storage class.  I chose not to run gluster inside kubernetes, because I wanted it to be a separate first-class citizen resource that is shared among multiple clusters.  I also chose not to run gluster on my blades to avoid catastrophic hardware failure.  
 
-I chose to run my gluster peers inside VMs that reference virtual disks that reside on physical raid storage.  While this may seem convoluted I think it is a nice compromise that provides enough isolation that provides a single storage set that can be used by any kubernetes cluster. I may replace the VMs with straight up docker. containers running directly on the node.  The only storage piece that runs in kubernetes is heketi.  I have included the helm chart I use that installs a heketi server and glusterfs storage class on any kubernetes clsuter in my network. 
+I chose to run my gluster peers inside VMs that reference virtual disks that reside on physical raid storage.  While this may seem convoluted I think it is a nice compromise that provides enough isolation that provides a single storage set that can be used by any kubernetes cluster. I may replace the VMs with straight up docker. containers running directly on the node.  The only storage piece that runs in kubernetes is heketi.  I have included the helm chart I use that installs a heketi server and glusterfs storage class on any kubernetes cluster in my network. 
 
 Here are the steps used to set up gluster:
 
-First create the physical RAID disks with mdadm.  The process is well detailed on the net, and the end result is usally new a storage device /dev/md0 that represents the RAID array.  I use this to sotre all of my VM disks and other large files.
+First, create the physical RAID disks with mdadm.  The process is well detailed on the net, and the end result is usually new a storage device /dev/md0 that represents the RAID array.  I use this to store all of my VM disks and other large files.
 
 Now create 2 virtual 500GB disk files:
 
@@ -300,7 +302,7 @@ dd if=/dev/zero of=kubernetes1.dsk bs=1M count=500000
 dd if=/dev/zero of=kubernetes2.dsk bs=1M count=500000
 ```
 
-Mount those disks as devices in a new vm used for a gluster server.
+Mount those disks as devices in a new VM used for a gluster server.
 
 ```
 <domain type='kvm' id='5'>
@@ -453,23 +455,23 @@ Mount those disks as devices in a new vm used for a gluster server.
 </domain>
 ```
 
-Repeat on each physical blade.  The 2 virual disks will be used by heketi to provision dynamic storage for any kubernetes cluster.
+Repeat on each physical blade.  The 2 virtual disks will be used by heketi to provision dynamic storage for any kubernetes cluster.
 
 ### glusterfs set up
 
-With the glusterfs VMs up and running we now need to make them talk with each other, and create any static volumes desired in kubernetes.  The glsuter initialization is stragihtforward.  I have 3 glusterfs vms (1 on each blade) with the ips: 10.10.10.17, 10.10.10.18, 10.10.10.19.  On each server run the glsuterfs peer probe for against hte other 1 servers.  Ex on 10.10.10.17 run:
+With the glusterfs VMs up and running we now need to make them talk with each other, and create any static volumes desired in kubernetes.  The glsuter initialization is straightforward.  I have 3 glusterfs vms (1 on each blade) with the ips: 10.10.10.17, 10.10.10.18, 10.10.10.19.  On each server run the glsuterfs peer probe for against the other 1 servers.  Ex on 10.10.10.17 run:
 ```
 gluster peer probe 10.10.10.18
 gluster peer probe 10.10.10.19
 ```
-Once this is done the glusterfs VMs will be talking and it is now possible ot create static volumes.  In my case I use a static volume for my openvpn certs and have a shared directory called /data/certs.  You can create this volume in glusterfs via:
+Once this is done the glusterfs VMs will be talking and it is now possible ot create static volumes.  In my case, I use a static volume for my OpenVPN certs and have a shared directory called /data/certs.  You can create this volume in glusterfs via:
 ```
 sudo gluster volume create certs replica 3 10.10.10.17:/data/certs 10.10.10.19:/data/certs 10.10.10.18:/data/certs force
 ```
 
 ## Kubernetes Finally
 
-Now that the physical hardware, storage, and vm nodes are set up it is time install kubernetes.  For this I have created ansible scripts to manage the life cycle of the kubernetes clusters.
+Now that the physical hardware, storage, and VM nodes are set up it is time install kubernetes.  For this, I have created ansible scripts to manage the life cycle of the kubernetes clusters.
 
 | Script              | Purpose                                             |
 |---------------------|:---------------------------------------------------:|
@@ -502,8 +504,8 @@ The first node is always considered the master by the ansible scripts:
 |-------------------------|:-----------------------------------------------------------:|
 |external_ip              | an externally available address - in my case ISP assigned IP|
 |docker_version           | version of docker installed on nodes                        |
-|api_port=6443            | clsuter api port                                            |
-|kubeadm_network_addon_url| url use to install clsuter network add on                   |
+|api_port=6443            | cluster API port                                            |
+|kubeadm_network_addon_url| URL use to install cluster network add-on                   |
 |cluster_name             | Name of this cluster                                        |
 
 To install kubernetes:
