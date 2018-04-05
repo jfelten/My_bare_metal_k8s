@@ -2,10 +2,10 @@
 
 * [Introduction](https://github.com/jfelten/README.md#introduction)
 * [Prerequisites](https://github.com/jfelten/README.md#prereq)
-* [Hardware set up] (https://github.com/jfelten/hardware.md)
-* [Storage set up] (https://github.com/jfelten/storage.md)
-* [Kubernetes set up] (https://github.com/jfelten/kubernetes.md)
-* [Cluster operations] (https://github.com/jfelten/clusterops.md)
+* [Hardware set up](https://github.com/jfelten/hardware.md)
+* [Storage set up](https://github.com/jfelten/storage.md)
+* [Kubernetes set up](https://github.com/jfelten/kubernetes.md)
+* [Cluster operations](https://github.com/jfelten/clusterops.md)
 
 ## Cluster Operations
 

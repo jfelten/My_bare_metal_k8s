@@ -2,10 +2,10 @@
 
 * [Introduction](https://github.com/jfelten/README.md#introduction)
 * [Prerequisites](https://github.com/jfelten/README.md#prereq)
-* [Hardware set up] (https://github.com/jfelten/hardware.md)
-* [Storage set up] (https://github.com/jfelten/storage.md)
-* [Kubernetes set up] (https://github.com/jfelten/kubernetes.md)
-* [Cluster operations] (https://github.com/jfelten/clusterops.md)
+* [Hardware set up](https://github.com/jfelten/hardware.md)
+* [Storage set up](https://github.com/jfelten/storage.md)
+* [Kubernetes set up](https://github.com/jfelten/kubernetes.md)
+* [Cluster operations](https://github.com/jfelten/clusterops.md)
 
 ## Server Chassis
 The hardware is a Dell 6105c 2U purchased a few years ago.  The hardware dates from 2011 or so and is set up with 3 blades each containing 48GB of DDR2 RAM and 2 6 core AMD Opteron processors for a total of 144G and 36 cores. Each blade runs CentOS 7 as the base OS.  All told I have about $500 invested.  The hardware is even older and cheaper now than when I purchased it.
