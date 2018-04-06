@@ -8,7 +8,7 @@
 * [Cluster operations](https://github.com/jfelten/My_bare_metal_k8s/blob/master/clusterops.md)
 
 ## Server Chassis
-The hardware is a Dell 6105c 2U purchased a few years ago.  The hardware dates from 2011 or so and is set up with 3 blades each containing 48GB of DDR2 RAM and 2 6 core AMD Opteron processors for a total of 144G and 36 cores. Each blade runs CentOS 7 as the base OS.  All told I have about $500 invested.  The hardware is even older and cheaper now than when I purchased it.
+The hardware is a Dell 6105c 2U rack mount server. The unit dates from 2011 or so and is set up with 3 blades each containing 48GB of DDR2 RAM and 2 6 core AMD Opteron processors for a total of 144G and 36 cores. Each blade runs CentOS 7 as the base OS. All told there is a total of $500 invested, which includes storage. The hardware is even older and cheaper now than when purchased.
 
 ## Storage
 Each blade accesses 4 physical drives of varying amounts of storage for a total of 12 physical SATA drives. On two of the blades, I set up RAID 1 storage consisting of two drives. One blade has a RAID 0 storage. The disk arrays are used to back a glusterfs storage array that is then used by all kubernetes clusters.
@@ -54,7 +54,7 @@ designated br1, and each blade has a different subnet (blade1: 10.10.1.0/24, bla
 
 ## Base OS installation
 
-I will provide detailed steps where important
+I will provide detailed steps where important, but gloss over some things like installed CentOS.
 
 Install CentOS 7 minimal and then add packages as needed. I prefer to keep the blade OS install as clean and minimal as possible, but you will need the libvirtd packages to run KVM.  Any service not related to keeping the node alive should be run in a VM or container.
 
@@ -105,6 +105,6 @@ BOOTPROTO=none
 BRIDGE=br0
 ```
 
-Repeat on the other 2 blade adjust the ips and subnets as needed.
+Repeat on the other 2 blades and adjust the ips and subnets accordingly. These subnets are completely isolated from the lab subnet and consequently secured as long as your lab subnet has prudent security.
 
-Next: [Storage set up](https://github.com/jfelten/My_bare_metal_k8s/blob/master/storage.md)
+### Next: [Storage set up](https://github.com/jfelten/My_bare_metal_k8s/blob/master/storage.md)

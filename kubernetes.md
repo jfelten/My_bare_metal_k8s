@@ -7,15 +7,15 @@
 * [Kubernetes set up](https://github.com/jfelten/My_bare_metal_k8s/blob/master/kubernetes.md)
 * [Cluster operations](https://github.com/jfelten/My_bare_metal_k8s/blob/master/clusterops.md)
 
-## Create a Kubernetes cluster that runs in kvm based nodes
+## Create a Kubernetes cluster that runs on KVM based nodes
 
-I decided to use kvm vm templates for the flexibility, safety and isolation. There are breakages and incompatibilities with each new kubernetes release and I usually have to massage the node image and ansible scripts.
+I decided to use KVM VM templates for the flexibility, safety, and isolation. There are breakages and incompatibilities with each new kubernetes release and I usually have to massage the node image and ansible scripts.
 
-For reliability I try to keep my blade OS as clean as possible.
+For reliability, I try to keep my blade OS as clean as possible.
 
 ### cluster node sizing
 
-At this point in time sizing a kubernetes node is more art than science and depends a lot on what it runs.  I have standardized on 4 node clusters with 4 GB RAM 2 CPU cores, and 100 GB of disk on each.  This should be enough to run most medium sized applications.  As time passes node resources will be adjusted as necessary.
+At this point in time sizing a kubernetes node is more art than science and depends a lot on what it runs.  I have standardized on 4 node clusters with 4 GB RAM 2 CPU cores, and 100 GB disk on each.  This should be enough to run most medium sized applications.  As time passes node resources will be adjusted as necessary.
 
 ### create a kvm node template
 
@@ -203,7 +203,7 @@ Much of this could be automated, but I have not had to do it enough to justify t
 
 Now that the physical hardware, storage, and VM nodes are set up it is time install kubernetes.  For this, I have created ansible scripts to manage the life cycle of the kubernetes clusters.
 
-All my clusters are simple 1 master/etcd non high avialbabiltiy (HA) clsuters created via kubeadm.  Once running they work great for lab purposes. They could be adapted for productions use by using multiple clsuters through a load blancer, but I have had no reason to do that yet.
+All my clusters are simple 1 master/etcd that are not high availability (HA) clusters created via kubeadm.  Once running they work great for lab purposes. They could be adapted for productions use by using multiple clusters through a load balancer, but I have had no reason to do that yet.
 
 | Script              | Purpose                                             |
 |---------------------|:---------------------------------------------------:|
@@ -229,7 +229,7 @@ kubeadm_network_addon_url=https://cloud.weave.works/k8s/net?k8s-version=
 cluster_name="cluster 1"
 
 ```
-Important to note: <B>The first node, which in htis case is cluster1n1, is always considered the master by these ansible scripts.  This is particularly important when creating and upgrading the cluster.</b>
+Important to note: <B>The first node, which in this case is cluster1n1, is always considered the master by these ansible scripts.  This is particularly important when creating and upgrading the cluster.</b>
 
 | variable                | Purpose                                                      |
 |-------------------------|:-----------------------------------------------------------|
@@ -238,6 +238,10 @@ Important to note: <B>The first node, which in htis case is cluster1n1, is alway
 |api_port=6443            | cluster API port                                            |
 |kubeadm_network_addon_url| URL use to install cluster network add-on                   |
 |cluster_name             | Name of this cluster                                        |
+|slack_token             | token used for slack authentication                                        |
+|slack_user             | The user on slack that messages appear from                                        |
+|slack_channel             | The clack channel where cluster alerts go                                         |
+
 
 To install kubernetes on all nodes in the inventory file clone this repo and run:
 
@@ -245,14 +249,14 @@ To install kubernetes on all nodes in the inventory file clone this repo and run
 ansible-playbook ansible/install_k8s.yaml -i ansible/cluster1
 ```
 
-The ansible script installs docker, kubernetes and kubeadm via the offical kubernetes yum repo.  <b>Kubernetes does not run on CentOS out of the box.  Considerable massaging of the OS is needed.</b> All of th<is is encasulated by the ansible install script. For example it turns off swap memory and sets the right cgroups for the kubelet service. Review the ansible install script for details.
+The ansible script installs docker, kubernetes, and kubeadm via the official kubernetes yum repo.  <b>Kubernetes does not run on CentOS out of the box.  Considerable massaging of the OS is needed.</b> All of this is encapsulated by the ansible install script. For example, it turns off swap memory and sets the right cgroups for the kubelet service. Review the ansible install script for details.
 
 
 ## Create the Cluster:
 
-All clsuters get created via kubeadm. Kubeadm is a tool that automates cluster creation, and it is further automated by using ansible to coordinate on all the nodes in the cluster.
+All clusters get created via kubeadm. Kubeadm is a tool that automates cluster creation, and it is further automated by using ansible to coordinate on all the nodes in the cluster.
 
-The create cluster script can be run again to regenerate kube api key.  currently I only genreate one key since it is only me and a few others that use the clsuter.
+The create cluster script can be run again to regenerate kube API key.  currently, I only generate one key since it is only me and a few others that use the cluster.
 
 To create the cluster run the ansible script:
 
@@ -262,7 +266,7 @@ ansible-playbook ansible/create_cluster.yaml -i ansible/cluster1
 
 ## Upgrading to a newer version of kubernetes
 
-The third ansible script upgrades and existing cluster to a new version of kubernetes. Since I live on the bleeding edge I always try to run the latest. Kubeadm does support specific kubernetes version installs so the script could be adpated to install a specific kubernetes version if needed.
+The third ansible script upgrades and existing cluster to a new version of kubernetes. Since I live on the bleeding edge I always try to run the latest. Kubeadm does support specific kubernetes version installs so the script could be adapted to install a specific kubernetes version if needed.
 
 To upgrade an existing cluster to the latest version of kubernetes:
  

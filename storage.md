@@ -9,13 +9,13 @@
 
 ## Create the glusterfs storage array
 
-Dynamic storage is not technically required, but I strongly suggest it for any kubernetes cluster.  This will let kubernetes manage the lifecycle of perisent disks used by applicaitons.  Many open source kubernetes applications assume the presence of a working default storage class, and this will allow you to run them out of the box without painful storage reconfigurations.
+Dynamic storage is not technically required, but I strongly suggest it for any kubernetes cluster.  This will let kubernetes manage the lifecycle of persistent disks used by applications.  Many open source kubernetes applications assume the presence of a working default storage class, and this will allow you to run them out of the box without painful storage reconfigurations.
 
-I chose to build my own storage array. If you do not desire this there are other options.  It is possible to allocate space directly on a node and then use a provider running inside kubernetes like [nfs](https://github.com/kubernetes-incubator/external-storage/tree/master/nfs), [rook](https://github.com/rook/rook), or even [glusterfs](https://github.com/gluster/gluster-kubernetes) to use that disk for dymanic storage.  These tie storage directly to the kubernetes nodes, but are easier to configure.
+I chose to build my own storage array. If you do not desire this there are other options.  It is possible to allocate space directly on a node and then use a provider running inside kubernetes like [nfs](https://github.com/kubernetes-incubator/external-storage/tree/master/nfs), [rook](https://github.com/rook/rook), or even [glusterfs](https://github.com/gluster/gluster-kubernetes) to use that disk for dynamic storage.  These tie storage directly to the kubernetes nodes, but are easier to configure.
 
-I chose to use glusterfs as my storage provide mainly because I was using an RHEL variant and I didn't have access to a proper NAS.  I did try [rook](https://github.com/rook/rook) but quickly gave up due to underlying ceph issues that looked hard to solve.  Glusterfs works out of the box on CentOS and is relatively straightforward to use.  There is even a service-based front end called heketi that can act as a dynamic storage provisioner in kubernetes.  Overall I am pleased with glusterfs.
+I chose to use glusterfs as my storage provide mainly because I was using an RHEL variant and I didn't have access to a proper NAS.  I did try [rook](https://github.com/rook/rook) but quickly gave up due to underlying ceph issues that looked hard to solve.  Glusterfs works out of the box on CentOS and is relatively straightforward to use.  There is even a service-based front-end called heketi that can act as a dynamic storage provisioner in kubernetes.  Overall I am pleased with glusterfs.
 
-There are many ways to run glusterfs: directly on the blades, VMS, straight up docker, or kubernetes.  There is a good [glusterfs kubernetes example](https://github.com/gluster/gluster-kubernetes) that includes heketi and a glusterfs storage class.  This example runs teh glsuter service itself inside kubernetes and mount storage direcly on the nodes.  I chose not to run gluster inside kubernetes, because I wanted a separate first-class citizen resource that is shared among multiple clusters.  I also chose not to run gluster on my blades to guard against catastrophic hardware failure.  
+There are many ways to run glusterfs: directly on the blades, VMS, straight up docker, or kubernetes.  There is a good [glusterfs kubernetes example](https://github.com/gluster/gluster-kubernetes) that includes heketi and a glusterfs storage class.  This example runs the gluster service itself inside kubernetes and mounts storage directly on the nodes.  I chose not to run gluster inside kubernetes because I wanted a separate first-class citizen resource that is shared among multiple clusters.  I also chose not to run gluster on my blades to guard against catastrophic hardware failure.  
 
 I designed my glusterfs peers to run inside VMs that reference virtual disks that reside on physical raid storage.  While this may seem convoluted I think it is a nice compromise that provides enough isolation while providing an independent storage solution that can be used by any kubernetes cluster. I may replace the VMs with straight up docker or lxc in the future. The only storage component that runs in kubernetes is heketi.  I have included the helm chart I use that installs a heketi server and glusterfs storage class on any kubernetes cluster in my network. 
 
@@ -47,10 +47,10 @@ I designed my glusterfs peers to run inside VMs that reference virtual disks tha
 
 ### Steps to set up glusterfs
 
-First, create the physical RAID disks with mdadm.  The process is well detailed on the net, and the end result is usually new a storage device /dev/md0 that represents the RAID array.  On my blades I mount /dev/md0 to /data.
+First, create the physical RAID disks with mdadm.  The process is well detailed on the net, and the end result is usually new a storage device /dev/md0 that represents the RAID array.  On my blades, I mount /dev/md0 on /data.
 
 ```
-# mdadm --create --verbose /dev/md0 --level=1 /dev/sda1 /
+# mdadm --create --verbose /dev/md0 --level=1 /dev/sda1 /dev/sdb1
 # mkfs.ext4 /dev/sdb1
 # mkdir -p /data
 # mount /dev/md0 /data
@@ -64,7 +64,7 @@ Now create 2 virtual 500GB disk files in the data directory of each blade:
 # dd if=/dev/zero of=/data/k8s/kubernetes2.dsk bs=1M count=500000
 ```
 
-Mount those disks as devices in a new VM used as a glusterfs peer.  In the case I take the above 2 files and attach as the devices: /dev/vdd and /dev/vde. These device will be referenced in the heketi topology file that runs on kuberentes.  Once the VM is booted create the file system with:
+Mount those disks as devices in a new VM used as a glusterfs peer.  In the case, I take the above 2 files and attach to the devices: /dev/vdd and /dev/vde. These devices will be referenced in the heketi topology file that runs on kubernetes.  Once the VM is booted create the file system with:
 
 ```
 # mkfs.ext4 /dev/vdd
@@ -226,12 +226,12 @@ Repeat on each physical blade.  The 2 virtual disks will be used by heketi to pr
 
 ### glusterfs configuration
 
-With the glusterfs VMs up and running we create the storage array, and create any static volumes desired in kubernetes.  The glsuter initialization is straightforward.  I have 3 glusterfs vms (1 on each blade) with the ips: 10.10.10.17, 10.10.10.18, 10.10.10.19.  On each server run the glsuterfs peer probe for against the other 1 servers.  Ex on 10.10.10.17 run:
+With the glusterfs VMs up and running create the storage array and any static volumes desired in kubernetes.  The gluster initialization is straightforward.  I have 3 glusterfs vms (1 on each blade) with the ips: 10.10.10.17, 10.10.10.18, 10.10.10.19.  On each server run the glsuterfs peer probe for against the other 1 servers.  Ex: on 10.10.10.17 run:
 ```
 gluster peer probe 10.10.10.18
 gluster peer probe 10.10.10.19
 ```
-Once this is done the glusterfs VMs will be talking and it is now possible ot create static volumes.  In my case, I use a static volume for my OpenVPN certs and have a shared directory called /data/certs.  You can create this volume in glusterfs via:
+Once this is done the glusterfs VMs will be talking and it is now possible to create static volumes.  In my case, I use a static volume for my OpenVPN certs and have a shared directory called /data/certs.  You can create this volume in glusterfs via:
 
 ```
 sudo gluster volume create certs replica 3 10.10.10.17:/data/certs 10.10.10.19:/data/certs 10.10.10.18:/data/certs force
@@ -240,7 +240,7 @@ sudo gluster volume create certs replica 3 10.10.10.17:/data/certs 10.10.10.19:/
 ### configure heketi
 
 Now that the gluster peers are running with attached storage let's talk about [heketi](https://github.com/heketi/heketi).  [Heketi](https://github.com/heketi/heketi) is a service written in Go that provides a RESTful interface for glusterfs operations. For this purpose let's assume a running kubernetes cluster because that's how I run heketi.  Heketi requires 2 main configurations:
-A toplogy file that lists the addresses of each glsuterfs peer and a heketi.json file that references ssh keys used to execute on each peer. I have included a helm chart that I use to bootstrap heketi on my kubernetes clusters (k8s/charts/glusterfs).  To adapt this to your setup change the endpoint ips: k8s/charts/glusterfs/templates/gluster_endpoints.yaml, the ssh secrets: charts/glusterfs/templates/gluster_secret.yaml, and and custom hekei configs:   charts/glusterfs/templates/heketi_configs.yaml.  All the values are for my lab.  You will need to install your own ssh keys assuming you run VMS and add them to the hekti secrets file.
+A topology file that lists the addresses of each glusterfs peer and a heketi.json file that references ssh keys used to execute on each peer. I have included a helm chart that I use to bootstrap heketi on my kubernetes clusters (k8s/charts/glusterfs).  To adapt this to your setup change the endpoint ips: k8s/charts/glusterfs/templates/gluster_endpoints.yaml, the ssh secrets: charts/glusterfs/templates/gluster_secret.yaml, and and custom heketi configs:   charts/glusterfs/templates/heketi_configs.yaml.  All the values are for my lab.  You will need to install your own ssh keys assuming you run VMS and add them to the heketi secrets file.
 
 ### next: [kubernetes setup](https://github.com/jfelten/My_bare_metal_k8s/blob/master/kubernetes.md)
 
